@@ -1,10 +1,10 @@
 # ColorGuide
 
-ColorGuide Online Shopping Assistant course project. The Chrome extension adds persistent, plain-language color labels to a page.
+A personal continuation of the ColorGuide Online Shopping Assistant course project. The Chrome extension adds persistent, plain-language color labels to a page.
 
 ## Origin and credit
 
-Based on [Teaching-Accessibility/course-project-colorguide](https://github.com/Teaching-Accessibility/course-project-colorguide).
+Based on [Teaching-Accessibility/course-project-colorguide](https://github.com/Teaching-Accessibility/course-project-colorguide). Original collaborators: Kelley, Tin, and Natalie Keys. Kelley defined the original color dictionary; Tin implemented label interactions; Natalie implemented the dictionary, popup, and styling. The original Git history and [course documentation](docs/ORIGINAL-COURSE-README.md) are retained.
 
 ## Classification improvements
 
@@ -34,3 +34,9 @@ npm test
 ## Project status
 
 Private development continuation. Classification unit tests and demo checks do not constitute an end-to-end extension test. Verify capture, labels, zoom, high-DPI displays, and supported shopping pages in Chrome before release. The source archive contained no LICENSE file; this continuation does not add or replace licensing terms for the original collaborators’ work.
+
+## Ambiguous colors
+
+`classifyRgb` and `classifyHexDetailed` return `{primary, secondary, confidence}`. Confidence is the fraction of 27 nearby RGB samples (each channel offset by -8, 0, or +8) retaining the primary name. It is a local stability heuristic, not calibrated accuracy. Below 0.80, the most common other name is offered. `formatLabel(result, false)` hides it. Both demos provide a checkbox; the extension shows alternatives automatically. Screenshot confidence also includes agreement across sampled pixels.
+
+Pale warm neutrals have a Cream category. RGB (192,128,64) returns Brown / Orange; (245,240,230) returns Cream / White; (240,232,216) returns Cream. These are regression expectations, not new user-study results.

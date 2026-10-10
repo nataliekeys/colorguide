@@ -30,7 +30,9 @@
     const spread = (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
     // Resolve neutrals first, so tiny channel differences cannot create a hue label.
     if (l <= .055 || (l <= .10 && s < .15)) return 'Black';
-    if (l >= .965 || (l >= .92 && spread < .035)) return 'White';
+    if (l >= .965 || (l >= .94 && spread < .07) || (l >= .92 && spread < .035)) return 'White';
+    if (h >= 15 && h < 85 && l >= .84 && spread >= .025 && spread <= .20) return 'Cream';
+    if (l >= .84 && spread < .12) return 'Light Gray';
     if (s < .10 || spread < .025) return l < .32 ? 'Dark Gray' : l > .72 ? 'Light Gray' : 'Gray';
     // Brown/tan are warm hues at lower chroma/lightness, not just very dark orange.
     if (h >= 10 && h < 48 && (l < .43 || (s < .55 && l < .78))) {
@@ -52,6 +54,29 @@
     const prefix = l < .30 ? 'Dark ' : l >= .72 ? 'Light ' : '';
     return prefix + family;
   }
+  // Stability under small RGB changes is a heuristic, not a probability of correctness.
+  const CONFIDENCE_THRESHOLD = .80;
+  function classifyRgb(r, g, b) {
+    [r, g, b] = channels(r, g, b);
+    const primary = colorNameTranslate(r, g, b), votes = new Map();
+    for (const dr of [-8, 0, 8]) for (const dg of [-8, 0, 8]) for (const db of [-8, 0, 8]) {
+      const name = colorNameTranslate(r + dr, g + dg, b + db);
+      votes.set(name, (votes.get(name) || 0) + 1);
+    }
+    const confidence = (votes.get(primary) || 0) / 27;
+    const alternative = [...votes].filter(([name]) => name !== primary)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+    return {primary, secondary: confidence < CONFIDENCE_THRESHOLD && alternative ? alternative[0] : null, confidence};
+  }
+  function classifyHexDetailed(hex) {
+    classifyHex(hex); // Validate using the compatibility API.
+    let value = hex.slice(1);
+    if (value.length === 3) value = [...value].map(c => c + c).join('');
+    return classifyRgb(...[0, 2, 4].map(i => parseInt(value.slice(i, i + 2), 16)));
+  }
+  function formatLabel(result, showAlternative = true) {
+    return result.primary + (showAlternative && result.secondary ? ' / ' + result.secondary : '');
+  }
   function classifyHex(hex) {
     if (typeof hex !== 'string' || !/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) {
       throw new TypeError('Use a three- or six-digit hex color.');
@@ -63,34 +88,45 @@
   function rgbToHex(r, g, b) {
     return '#' + channels(r, g, b).map(v => Math.round(v).toString(16).padStart(2, '0')).join('').toUpperCase();
   }
-  function sampleColor(context, x, y) {
+  function sampleColorDetailed(context, x, y) {
     if (!Number.isFinite(x) || !Number.isFinite(y)) throw new TypeError('Pixel coordinates must be finite.');
     const w = context.canvas.width, h = context.canvas.height;
-    if (!w || !h) return 'Unknown';
+    if (!w || !h) return {primary: 'Unknown', secondary: null, confidence: 0};
     const cx = Math.max(0, Math.min(w - 1, Math.round(x)));
     const cy = Math.max(0, Math.min(h - 1, Math.round(y)));
     const left = Math.max(0, cx - 2), top = Math.max(0, cy - 2);
     const width = Math.min(w - 1, cx + 2) - left + 1;
     const height = Math.min(h - 1, cy + 2) - top + 1;
     const pixels = context.getImageData(left, top, width, height).data;
-    const counts = new Map();
+    const counts = new Map(), results = [];
     let centerName;
     for (let i = 0; i < pixels.length; i += 4) {
       if (pixels[i + 3] === 0) continue;
-      const name = colorNameTranslate(pixels[i], pixels[i + 1], pixels[i + 2]);
+      const result = classifyRgb(pixels[i], pixels[i + 1], pixels[i + 2]);
+      results.push(result);
+      const name = result.primary;
       counts.set(name, (counts.get(name) || 0) + 1);
       if (i / 4 === (cy - top) * width + cx - left) centerName = name;
     }
-    if (!counts.size) return 'Unknown';
+    if (!counts.size) return {primary: 'Unknown', secondary: null, confidence: 0};
     const max = Math.max(...counts.values());
     // On an equal vote, prefer the clicked pixel; otherwise use a stable name order.
-    if (counts.get(centerName) === max) return centerName;
-    return [...counts.keys()].filter(name => counts.get(name) === max).sort()[0];
+    const primary = counts.get(centerName) === max ? centerName : [...counts.keys()].filter(name => counts.get(name) === max).sort()[0];
+    const matching = results.filter(result => result.primary === primary);
+    const confidence = matching.reduce((sum, result) => sum + result.confidence, 0) / results.length;
+    const alternatives = new Map();
+    for (const result of results) {
+      const name = result.primary !== primary ? result.primary : result.secondary;
+      if (name && name !== primary) alternatives.set(name, (alternatives.get(name) || 0) + 1);
+    }
+    const second = [...alternatives].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0]))[0];
+    return {primary, secondary: confidence < CONFIDENCE_THRESHOLD && second ? second[0] : null, confidence};
   }
-  const api = {colorNameTranslate, classifyHex, rgbToHsl, rgbToHex, sampleColor};
+  function sampleColor(context, x, y) { return sampleColorDetailed(context, x, y).primary; }
+  const api = {colorNameTranslate, classifyHex, classifyRgb, classifyHexDetailed, formatLabel, CONFIDENCE_THRESHOLD, rgbToHsl, rgbToHex, sampleColor, sampleColorDetailed};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.ColorGuide = api; Object.assign(root, {colorNameTranslate, rgbToHsl, rgbToHex}); }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
 // Adapter for the original extension's shared screenshot canvas.
-function getColor(x, y) { return ColorGuide.sampleColor(tempContext, x, y); }
+function getColor(x, y) { return ColorGuide.formatLabel(ColorGuide.sampleColorDetailed(tempContext, x, y)); }

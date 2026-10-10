@@ -12,8 +12,8 @@ function createLabel(x, y, content) {
     newLabel.style.background = "#ffffff";
     newLabel.style.cursor  = "pointer";
     newLabel.style.display = "block"
-    newLabel.style.width = "120px";
-    newLabel.style.height = "65px";
+    newLabel.style.width = "180px";
+    newLabel.style.height = "85px";
 	newLabel.style.border = "1px solid black";
 
     newLabel.id = "ColorLabel" + count;

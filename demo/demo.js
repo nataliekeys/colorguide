@@ -1,9 +1,10 @@
 (() => {
  const hex=document.querySelector('#hex'),picker=document.querySelector('#picker');
- function render(value){try{const name=ColorGuide.classifyHex(value);document.querySelector('#result').textContent=name;document.querySelector('#sample').style.background=value;document.querySelector('#value').textContent=value;hex.value=value;if(value.length===7)picker.value=value;}catch{document.querySelector('#result').textContent='Enter a valid hex color.';}}
+ function render(value){try{const result=ColorGuide.classifyHexDetailed(value),name=ColorGuide.formatLabel(result,document.querySelector('#alternatives').checked);document.querySelector('#confidence').textContent='Naming stability: '+Math.round(result.confidence*100)+'%';document.querySelector('#result').textContent=name;document.querySelector('#sample').style.background=value;document.querySelector('#value').textContent=value;hex.value=value;if(value.length===7)picker.value=value;}catch{document.querySelector('#result').textContent='Enter a valid hex color.';}}
  document.querySelector('#color-form').addEventListener('submit',e=>{e.preventDefault();render(hex.value)});
+ document.querySelector('#alternatives').addEventListener('change',()=>render(hex.value));
  picker.addEventListener('input',()=>render(picker.value));
- for(const value of ['#92866b','#d2b48c','#804000','#ff8800','#808000','#bdb76b','#818080','#ffc0cb','#000080','#c8b1db','#b0e0e6']){
+ for(const value of ['#c08040','#f5f0e6','#f0e8d8','#92866b','#d2b48c','#804000','#ff8800','#808000','#bdb76b','#818080','#ffc0cb','#000080','#c8b1db','#b0e0e6']){
  const button=document.createElement('button');button.type='button';button.className='fixture';
  const chip=document.createElement('span');chip.className='chip';chip.style.background=value;chip.setAttribute('aria-hidden','true');
  const label=document.createElement('span');label.textContent=ColorGuide.classifyHex(value);
