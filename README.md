@@ -1,10 +1,10 @@
 # ColorGuide
 
-A personal continuation of the ColorGuide Online Shopping Assistant course project. The Chrome extension adds persistent, plain-language color labels to a page.
+ColorGuide Online Shopping Assistant course project. The Chrome extension adds persistent, plain-language color labels to a page.
 
 ## Origin and credit
 
-Based on [Teaching-Accessibility/course-project-colorguide](https://github.com/Teaching-Accessibility/course-project-colorguide). Original collaborators: Kelley, Tin, and Natalie Keys. Kelley defined the original color dictionary; Tin implemented label interactions; Natalie implemented the dictionary, popup, and styling. The original Git history and [course documentation](docs/ORIGINAL-COURSE-README.md) are retained.
+Based on [Teaching-Accessibility/course-project-colorguide](https://github.com/Teaching-Accessibility/course-project-colorguide).
 
 ## Classification improvements
 
